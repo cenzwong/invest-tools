@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OptionFlow | Professional Payoff Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+HK:wght@400;700&display=swap');
+        body { font-family: 'Inter', 'Noto Sans HK', sans-serif; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .lang-toggle.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .nav-btn.active {
+            color: #3b82f6;
+            border-bottom: 2px solid #3b82f6;
+        }
+        .hidden-view { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen">
+
+    <!-- Navigation -->
+    <nav class="border-b border-slate-800 bg-slate-900/50 px-6 py-4 mb-8 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="navigateTo('visualizer')">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">O</div>
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">OptionFlow</h1>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <div class="hidden md:flex gap-6 text-sm font-medium text-slate-400">
+                    <button id="nav-basics" onclick="navigateTo('basics')" data-i18n="navBasics" class="nav-btn pb-1 hover:text-blue-400 transition">Basics</button>
+                    <button id="nav-strategies" onclick="navigateTo('strategies')" data-i18n="navStrategies" class="nav-btn pb-1 hover:text-blue-400 transition">Strategies</button>
+                    <button id="nav-greeks" onclick="navigateTo('greeks')" data-i18n="navGreeks" class="nav-btn pb-1 hover:text-blue-400 transition">Greeks</button>
+                </div>
+                
+                <!-- Language Toggle -->
+                <div class="flex bg-slate-800 rounded-lg p-1 text-xs border border-slate-700">
+                    <button onclick="setLanguage('en')" id="langEn" class="lang-toggle px-3 py-1 rounded-md transition active">EN</button>
+                    <button onclick="setLanguage('hk')" id="langHk" class="lang-toggle px-3 py-1 rounded-md transition">中文</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 md:px-6 pb-20">
+        
+        <!-- View: Visualizer -->
+        <div id="view-visualizer" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Sidebar: Controls -->
+            <div class="lg:col-span-4 space-y-6">
+                <section class="glass-panel p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                        <span data-i18n="configTitle">Strategy Configuration</span>
+                    </h2>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" data-i18n="labelSelect">Select Strategy</label>
+                            <select id="strategyType" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 transition" onchange="handleStrategyChange()">
+                            </select>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-800">
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" data-i18n="labelSpot">Market Price (Spot)</label>
+                            <div class="flex gap-4 items-center">
+                                <input type="range" id="spotRange" min="50" max="150" value="100" class="flex-grow accent-blue-500" oninput="syncSpot(this.value)">
+                                <input type="number" id="spotInput" value="100" class="w-20 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-center" oninput="syncSpot(this.value)">
+                            </div>
+                        </div>
+
+                        <div id="dynamicInputs" class="space-y-4"></div>
+                    </div>
+                </section>
+
+                <section id="educationPanel" class="glass-panel p-6 rounded-2xl border-l-4 border-l-blue-500">
+                    <h3 class="text-blue-400 font-bold mb-1" id="eduTitle">Long Call</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed mb-4" id="eduDesc"></p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                            <span class="block text-[10px] text-slate-500 uppercase font-bold" data-i18n="statReward">Max Reward</span>
+                            <span id="maxReward" class="text-green-400 font-semibold text-sm">Unlimited</span>
+                        </div>
+                        <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                            <span class="block text-[10px] text-slate-500 uppercase font-bold" data-i18n="statRisk">Max Risk</span>
+                            <span id="maxRisk" class="text-red-400 font-semibold text-sm">Premium Paid</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Main Panel: Chart -->
+            <div class="lg:col-span-8 space-y-6">
+                <div class="glass-panel p-6 rounded-2xl shadow-xl h-[500px] flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-semibold text-slate-300" data-i18n="chartTitle">Payoff Diagram</h2>
+                        <div class="flex gap-2">
+                            <span class="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20" id="sentimentBadge">Bullish</span>
+                        </div>
+                    </div>
+                    <div class="flex-grow relative">
+                        <canvas id="payoffChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="glass-panel p-4 rounded-xl text-center">
+                        <span class="block text-xs text-slate-500 mb-1" data-i18n="statBe">Breakeven</span>
+                        <span id="bePrice" class="text-xl font-bold">$105.00</span>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl text-center">
+                        <span class="block text-xs text-slate-500 mb-1" data-i18n="statPop">Prob. of Profit</span>
+                        <span class="text-xl font-bold text-slate-400">~34%</span>
+                    </div>
+                    <div class="glass-panel p-4 rounded-xl text-center">
+                        <span class="block text-xs text-slate-500 mb-1" data-i18n="statCost">Cost / Credit</span>
+                        <span id="tradeCost" class="text-xl font-bold text-blue-400">$500.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Educational Content Container -->
+        <div id="view-edu" class="hidden-view max-w-4xl mx-auto">
+            <button onclick="navigateTo('visualizer')" class="mb-6 flex items-center gap-2 text-blue-400 hover:text-blue-300 transition font-medium bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                <span data-i18n="btnBack">Back to Visualizer</span>
+            </button>
+            <div id="edu-content" class="glass-panel p-8 md:p-12 rounded-3xl shadow-2xl">
+                <!-- Content injected here -->
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let currentLang = 'en';
+        let chart;
+        const ctx = document.getElementById('payoffChart').getContext('2d');
+
+        const I18N = {
+            en: {
+                navBasics: "Basics", navStrategies: "Strategies", navGreeks: "Greeks",
+                configTitle: "Strategy Configuration", labelSelect: "Select Strategy", labelSpot: "Market Price (Spot)",
+                statReward: "Max Reward", statRisk: "Max Risk", statBe: "Breakeven", 
+                statPop: "Prob. of Profit", statCost: "Cost / Credit", chartTitle: "Payoff Diagram",
+                chartX: "Stock Price at Expiration", chartY: "Profit / Loss",
+                unlimited: "Unlimited", calc: "Calculating...", riskZero: "Risk of stock going to zero",
+                btnBack: "Back to Visualizer",
+                groups: { single: "Single Leg", income: "Income Strategy", spreads: "Vertical Spreads", advanced: "Advanced" }
+            },
+            hk: {
+                navBasics: "期權基礎", navStrategies: "策略庫", navGreeks: "希臘值",
+                configTitle: "策略設定", labelSelect: "選擇策略", labelSpot: "現價 (Spot)",
+                statReward: "最大回報", statRisk: "最大風險", statBe: "盈虧平衡點", 
+                statPop: "獲利機率", statCost: "交易成本 / 收入", chartTitle: "回報分析圖",
+                chartX: "結算股價", chartY: "盈虧",
+                unlimited: "無限", calc: "計算中...", riskZero: "股價跌至0之風險",
+                btnBack: "返回計算器",
+                groups: { single: "單邊策略", income: "收入策略", spreads: "價差策略", advanced: "進階策略" }
+            }
+        };
+
+        const EDU_DATA = {
+            basics: {
+                title: { en: "Options Fundamentals", hk: "期權基礎知識" },
+                content: {
+                    en: `
+                        <h2 class="text-2xl font-bold text-blue-400 mb-4">What are Options?</h2>
+                        <p class="text-slate-400 mb-6">Options are financial derivatives that give the buyer the <strong>right</strong>, but not the obligation, to buy or sell an asset at a specific price (Strike Price) within a specific timeframe.</p>
+                        
+                        <div class="grid md:grid-cols-2 gap-6 mb-8">
+                            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+                                <h3 class="text-lg font-bold text-white mb-2">Call Options (認購)</h3>
+                                <p class="text-sm text-slate-400">The right to <strong>BUY</strong>. You profit when the stock price goes UP.</p>
+                            </div>
+                            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+                                <h3 class="text-lg font-bold text-white mb-2">Put Options (認沽)</h3>
+                                <p class="text-sm text-slate-400">The right to <strong>SELL</strong>. You profit when the stock price goes DOWN.</p>
+                            </div>
+                        </div>
+
+                        <h2 class="text-2xl font-bold text-blue-400 mb-4">Key Terminology</h2>
+                        <ul class="space-y-3 text-slate-400 bg-slate-900/30 p-6 rounded-xl border border-slate-800">
+                            <li><strong class="text-white">Strike Price:</strong> The set price at which the option can be exercised.</li>
+                            <li><strong class="text-white">Premium:</strong> The cost of the option paid by the buyer to the seller.</li>
+                            <li><strong class="text-white">Expiration:</strong> The date the option contract becomes invalid.</li>
+                            <li><strong class="text-white">In-the-Money (ITM):</strong> When the option has intrinsic value.</li>
+                        </ul>
+                    `,
+                    hk: `
+                        <h2 class="text-2xl font-bold text-blue-400 mb-4">什麼是期權？</h2>
+                        <p class="text-slate-400 mb-6">期權（Options）是一種衍生工具。買方支付「期權金」後，獲得在特定日期（到期日）前，以特定價格（行使價）買入或賣出相關資產的<strong>權利</strong>（而非義務）。</p>
+                        
+                        <div class="grid md:grid-cols-2 gap-6 mb-8">
+                            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+                                <h3 class="text-lg font-bold text-white mb-2">認購期權 (Call)</h3>
+                                <p class="text-sm text-slate-400">買入的權利。當你預期資產價格<strong>上升</strong>時使用。</p>
+                            </div>
+                            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800">
+                                <h3 class="text-lg font-bold text-white mb-2">認沽期權 (Put)</h3>
+                                <p class="text-sm text-slate-400">賣出的權利。當你預期資產價格<strong>下跌</strong>時使用。</p>
+                            </div>
+                        </div>
+
+                        <h2 class="text-2xl font-bold text-blue-400 mb-4">核心術語</h2>
+                        <ul class="space-y-3 text-slate-400 bg-slate-900/30 p-6 rounded-xl border border-slate-800">
+                            <li><strong class="text-white">行使價 (Strike Price):</strong> 買賣資產的約定價格。</li>
+                            <li><strong class="text-white">期權金 (Premium):</strong> 買方向賣方支付的合約費用。</li>
+                            <li><strong class="text-white">到期日 (Expiration):</strong> 合約有效的最後期限。</li>
+                            <li><strong class="text-white">價內 (In-the-Money):</strong> 指期權具有「內在價值」的狀態。</li>
+                        </ul>
+                    `
+                }
+            },
+            strategies: {
+                title: { en: "Strategy Guide", hk: "策略應用指南" },
+                content: {
+                    en: `
+                        <h2 class="text-2xl font-bold text-blue-400 mb-4">Choosing the Right Strategy</h2>
+                        <p class="text-slate-400 mb-8">Strategy selection depends on your market outlook (Bullish, Bearish, or Neutral) and your risk tolerance.</p>
+                        
+                        <div class="grid gap-4">
+                            <div class="bg-green-500/5 border border-green-500/20 rounded-xl p-5">
+                                <h3 class="text-green-400 font-bold text-lg mb-1">Bullish (Market Goes Up)</h3>
+                                <p class="text-sm text-slate-400">Strategies: Long Call, Bull Call Spread, Cash-Secured Put.</p>
+                            </div>
+                            <div class="bg-red-500/5 border border-red-500/20 rounded-xl p-5">
+                                <h3 class="text-red-400 font-bold text-lg mb-1">Bearish (Market Goes Down)</h3>
+                                <p class="text-sm text-slate-400">Strategies: Long Put, Bear Put Spread, Short Call.</p>
+                            </div>
+                            <div class="bg-blue-500/5 border border-blue-500/20 rounded-xl p-5">
+                                <h3 class="text-blue-400 font-bold text-lg mb-1">Neutral (Market Stays Still)</h3>
+                                <p class="text-sm text-slate-400">Strategies: Iron Condor, Covered Call, Short Straddle.</p>
+                            </div>
+                        </div>
+                    `,
+                    hk: `
+                        <h2 class="text-2xl font-bold text-blue-400 mb-4">如何選擇合適的策略</h2>
+                        <p class="text-slate-400 mb-8">選擇策略取決於你對市場的看法（看好、看淡或橫行）以及你的風險承受能力。</p>
+                        
+                        <div class="grid gap-4">
+                            <div class="bg-green-500/5 border border-green-500/20 rounded-xl p-5">
+                                <h3 class="text-green-400 font-bold text-lg mb-1">看好市場 (Bullish)</h3>
+                                <p class="text-sm text-slate-400">適用：買入認購 (Long Call)、牛市認購價差 (Bull Call Spread)、現金擔保認沽 (Cash-Secured Put)。</p>
+                            </div>
+                            <div class="bg-red-500/5 border border-red-500/20 rounded-xl p-5">
+                                <h3 class="text-red-400 font-bold text-lg mb-1">看淡市場 (Bearish)</h3>
+                                <p class="text-sm text-slate-400">適用：買入認沽 (Long Put)、熊市認沽價差 (Bear Put Spread)、沽出認購 (Short Call)。</p>
+                            </div>
+                            <div class="bg-blue-500/5 border border-blue-500/20 rounded-xl p-5">
+                                <h3 class="text-blue-400 font-bold text-lg mb-1">盤整市場 (Neutral)</h3>
+                                <p class="text-sm text-slate-400">適用：鐵鷹式 (Iron Condor)、備兌認購 (Covered Call)、短跨式 (Short Straddle)。</p>
+                            </div>
+                        </div>
+                    `
+                }
+            },
+            greeks: {
+                title: { en: "Understanding The Greeks", hk: "認識期權希臘值" },
+                content: {
+                    en: `
+                        <h2 class="text-2xl font-bold text-blue-400 mb-6">The 4 Core Greeks</h2>
+                        <div class="grid gap-6">
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-blue-500 bg-slate-900/20">
+                                <h3 class="text-xl font-bold text-white mb-2">Delta (Δ) - Price Sensitivity</h3>
+                                <p class="text-sm text-slate-400">Measures sensitivity to the underlying price change. If Delta is 0.50, the option price moves $0.50 for every $1.00 move in stock.</p>
+                            </div>
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-purple-500 bg-slate-900/20">
+                                <h3 class="text-xl font-bold text-white mb-2">Theta (θ) - Time Decay</h3>
+                                <p class="text-sm text-slate-400">Measures "Time Decay". This is the daily amount an option loses in value as it approaches expiration.</p>
+                            </div>
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-orange-500 bg-slate-900/20">
+                                <h3 class="text-xl font-bold text-white mb-2">Vega (ν) - Volatility</h3>
+                                <p class="text-sm text-slate-400">Measures sensitivity to Volatility. High Vega means the option price swings wildly with changes in implied volatility (IV).</p>
+                            </div>
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-green-500 bg-slate-900/20">
+                                <h3 class="text-xl font-bold text-white mb-2">Gamma (γ) - Delta Change Rate</h3>
+                                <p class="text-sm text-slate-400">The rate of change of Delta. It measures how much the Delta changes for every $1 move in stock price.</p>
+                            </div>
+                        </div>
+                    `,
+                    hk: `
+                        <h2 class="text-2xl font-bold text-blue-400 mb-6">四大核心希臘值</h2>
+                        <div class="grid gap-6">
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-blue-500 bg-slate-900/20">
+                                <h3 class="text-xl font-bold text-white">Delta (Δ) - 價格敏感度</h3>
+                                <p class="text-sm text-slate-400">衡量股票價格每變動 $1，期權價格會變動多少。例如 Delta 是 0.5，股票升 $1，期權升 $0.5。</p>
+                            </div>
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-purple-500 bg-slate-900/20">
+                                <h3 class="text-xl font-bold text-white">Theta (θ) - 時間損耗</h3>
+                                <p class="text-sm text-slate-400">衡量時間流逝對期權價值的影響。期權會隨著接近到期日而每天貶值（時間價值損耗）。</p>
+                            </div>
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-orange-500 bg-slate-900/20">
+                                <h3 class="text-xl font-bold text-white">Vega (ν) - 波幅敏感度</h3>
+                                <p class="text-sm text-slate-400">衡量引伸波幅（IV）變動對期權價格的影響。波幅上升通常會推高期權價格。</p>
+                            </div>
+                            <div class="glass-panel p-6 rounded-xl border-l-4 border-l-green-500 bg-slate-900/20">
+                                <h3 class="text-xl font-bold text-white">Gamma (γ) - Delta 變化率</h3>
+                                <p class="text-sm text-slate-400">衡量股價每變動 $1，Delta 會改變多少。它反映了 Delta 的穩定性。</p>
+                            </div>
+                        </div>
+                    `
+                }
+            }
+        };
+
+        const STRATEGIES = {
+            long_call: {
+                name: { en: 'Long Call', hk: '買入認購期權' },
+                sentiment: { en: 'Bullish', hk: '看好' },
+                desc: { 
+                    en: 'Buying a call option gives you the right to buy the stock at the strike price. Profit if stock rises above strike + premium.',
+                    hk: '買入認購期權令你有權在到期日前以行使價買入股票。當股價大幅上升超過「行使價 + 期權金」時獲利。'
+                },
+                inputs: [{ label: {en: 'Strike', hk: '行使價'}, id: 'k1', val: 100 }, { label: {en: 'Premium', hk: '期權金'}, id: 'p1', val: 5 }],
+                calc: (s, i) => Math.max(0, s - i.k1) - i.p1,
+                group: 'single'
+            },
+            long_put: {
+                name: { en: 'Long Put', hk: '買入認沽期權' },
+                sentiment: { en: 'Bearish', hk: '看淡' },
+                desc: {
+                    en: 'Buying a put option gives you the right to sell the stock at the strike price. Profit if stock falls below strike - premium.',
+                    hk: '買入認沽期權令你有權在到期日前以行使價賣出股票。當股價大幅下跌低於「行使價 - 期權金」時獲利。'
+                },
+                inputs: [{ label: {en: 'Strike', hk: '行使價'}, id: 'k1', val: 100 }, { label: {en: 'Premium', hk: '期權金'}, id: 'p1', val: 5 }],
+                calc: (s, i) => Math.max(0, i.k1 - s) - i.p1,
+                group: 'single'
+            },
+            covered_call: {
+                name: { en: 'Covered Call', hk: '備兌認購期權' },
+                sentiment: { en: 'Slightly Bullish', hk: '微看好' },
+                desc: {
+                    en: 'Holding stock and selling a call to generate income. Caps upside but lowers cost basis.',
+                    hk: '持有股票的同時沽出認購期權。目的是賺取期權金以降低持倉成本，但向上獲利空間會被行使價封頂。'
+                },
+                inputs: [
+                    { label: {en: 'Stock Price', hk: '股票成本'}, id: 's0', val: 100 }, 
+                    { label: {en: 'Short Strike', hk: '沽出價'}, id: 'k1', val: 110 },
+                    { label: {en: 'Premium', hk: '期權金'}, id: 'p1', val: 3 }
+                ],
+                calc: (s, i) => (s - i.s0) + (i.p1 - Math.max(0, s - i.k1)),
+                group: 'income'
+            },
+            cash_secured_put: {
+                name: { en: 'Cash-Secured Put', hk: '現金擔保認沽期權' },
+                sentiment: { en: 'Bullish / Neutral', hk: '看好 / 牛皮' },
+                desc: {
+                    en: 'Selling a put with cash set aside. Used to earn income or buy stock at a discount.',
+                    hk: '預留現金並沽出認沽期權。如果股價下跌，你會以更便宜的價格買入股票；如果股價平穩，則賺取期權金。'
+                },
+                inputs: [
+                    { label: {en: 'Short Strike', hk: '沽出價'}, id: 'k1', val: 95 }, 
+                    { label: {en: 'Premium', hk: '期權金'}, id: 'p1', val: 3 }
+                ],
+                calc: (s, i) => i.p1 - Math.max(0, i.k1 - s),
+                group: 'income'
+            },
+            bull_call_spread: {
+                name: { en: 'Bull Call Spread', hk: '牛市認購價差' },
+                sentiment: { en: 'Moderate Bullish', hk: '溫和看好' },
+                desc: {
+                    en: 'Buying a lower strike call and selling a higher strike call. Limits risk and reward.',
+                    hk: '買入低行使價 Call 並沽出高行使價 Call。此策略限制了最大風險，同時也封頂了最大利潤。'
+                },
+                inputs: [
+                    { label: {en: 'Long K', hk: '買入價'}, id: 'k1', val: 95 }, 
+                    { label: {en: 'Short K', hk: '沽出價'}, id: 'k2', val: 105 },
+                    { label: {en: 'Net Cost', hk: '淨支出'}, id: 'p1', val: 4 }
+                ],
+                calc: (s, i) => (Math.max(0, s - i.k1) - Math.max(0, s - i.k2)) - i.p1,
+                group: 'spreads'
+            },
+            iron_condor: {
+                name: { en: 'Iron Condor', hk: '鐵鷹式期權' },
+                sentiment: { en: 'Neutral', hk: '預期橫行' },
+                desc: {
+                    en: 'Profit if the stock price remains between the two short strikes until expiration.',
+                    hk: '由四個期權組成，希望股價在到期時維持在特定的範圍內。這是一個賺取時間價值的策略。'
+                },
+                inputs: [
+                    { label: {en: 'Put Sell K', hk: '沽出認沽'}, id: 'k1', val: 90 }, 
+                    { label: {en: 'Put Buy K', hk: '買入認沽'}, id: 'k2', val: 85 },
+                    { label: {en: 'Call Sell K', hk: '沽出認購'}, id: 'k3', val: 110 },
+                    { label: {en: 'Call Buy K', hk: '買入認購'}, id: 'k4', val: 115 },
+                    { label: {en: 'Credit', hk: '淨收入'}, id: 'p1', val: 2 }
+                ],
+                calc: (s, i) => i.p1 - (Math.max(0, i.k1 - s) - Math.max(0, i.k2 - s)) - (Math.max(0, s - i.k3) - Math.max(0, s - i.k4)),
+                group: 'advanced'
+            }
+        };
+
+        function navigateTo(view) {
+            const visualizer = document.getElementById('view-visualizer');
+            const edu = document.getElementById('view-edu');
+            const eduContent = document.getElementById('edu-content');
+
+            // Update Nav States
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            if (view !== 'visualizer') {
+                document.getElementById('nav-' + view).classList.add('active');
+            }
+
+            if (view === 'visualizer') {
+                visualizer.classList.remove('hidden-view');
+                edu.classList.add('hidden-view');
+                // Small delay to ensure canvas has dimensions before rendering
+                setTimeout(updateUI, 10);
+            } else {
+                visualizer.classList.add('hidden-view');
+                edu.classList.remove('hidden-view');
+                
+                const data = EDU_DATA[view];
+                eduContent.innerHTML = `
+                    <div class="mb-10">
+                        <h1 id="edu-title-display" class="text-4xl font-black text-white mb-2">${data.title[currentLang]}</h1>
+                        <div class="h-1.5 w-24 bg-blue-600 rounded-full"></div>
+                    </div>
+                    <div class="text-slate-300">
+                        ${data.content[currentLang]}
+                    </div>
+                `;
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-toggle').forEach(el => el.classList.remove('active'));
+            document.getElementById(lang === 'en' ? 'langEn' : 'langHk').classList.add('active');
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                el.innerText = I18N[lang][key];
+            });
+
+            populateStrategySelect();
+            handleStrategyChange();
+
+            // Refresh educational content if currently viewing
+            const eduView = document.getElementById('view-edu');
+            if (!eduView.classList.contains('hidden-view')) {
+                const activeNav = document.querySelector('.nav-btn.active');
+                if (activeNav) {
+                    const viewId = activeNav.id.replace('nav-', '');
+                    navigateTo(viewId);
+                }
+            }
+        }
+
+        function populateStrategySelect() {
+            const select = document.getElementById('strategyType');
+            const currentVal = select.value || 'long_call';
+            select.innerHTML = '';
+            
+            const groups = {
+                single: document.createElement('optgroup'),
+                income: document.createElement('optgroup'),
+                spreads: document.createElement('optgroup'),
+                advanced: document.createElement('optgroup')
+            };
+
+            for (let key in groups) {
+                groups[key].label = I18N[currentLang].groups[key];
+            }
+
+            for (let key in STRATEGIES) {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.innerText = STRATEGIES[key].name[currentLang];
+                groups[STRATEGIES[key].group].appendChild(opt);
+            }
+
+            for (let key in groups) select.appendChild(groups[key]);
+            select.value = currentVal;
+        }
+
+        function syncSpot(val) {
+            document.getElementById('spotInput').value = val;
+            document.getElementById('spotRange').value = val;
+            updateUI();
+        }
+
+        function handleStrategyChange() {
+            const type = document.getElementById('strategyType').value;
+            const config = STRATEGIES[type];
+            const container = document.getElementById('dynamicInputs');
+            
+            container.innerHTML = '';
+            config.inputs.forEach(input => {
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">${input.label[currentLang]}</label>
+                    <input type="number" id="${input.id}" value="${input.val}" step="0.5" 
+                           class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-1.5 text-sm"
+                           oninput="updateUI()">
+                `;
+                container.appendChild(div);
+            });
+            updateUI();
+        }
+
+        function updateUI() {
+            const visualizer = document.getElementById('view-visualizer');
+            if (visualizer.classList.contains('hidden-view')) return;
+
+            const type = document.getElementById('strategyType').value || 'long_call';
+            const config = STRATEGIES[type];
+            const spot = parseFloat(document.getElementById('spotInput').value);
+            
+            const currentInputs = {};
+            config.inputs.forEach(inp => {
+                const el = document.getElementById(inp.id);
+                currentInputs[inp.id] = el ? parseFloat(el.value) || 0 : inp.val;
+            });
+
+            document.getElementById('eduTitle').innerText = config.name[currentLang];
+            document.getElementById('eduDesc').innerText = config.desc[currentLang];
+            document.getElementById('sentimentBadge').innerText = config.sentiment[currentLang];
+            
+            const labels = [];
+            const data = [];
+            const minX = Math.min(spot * 0.7, 50);
+            const maxX = Math.max(spot * 1.3, 150);
+            
+            for (let s = minX; s <= maxX; s += 0.5) {
+                labels.push(s);
+                data.push(config.calc(s, currentInputs));
+            }
+
+            renderChart(labels, data, spot);
+            updateStats(type, currentInputs);
+        }
+
+        function updateStats(type, i) {
+            const costEl = document.getElementById('tradeCost');
+            const rewardEl = document.getElementById('maxReward');
+            const riskEl = document.getElementById('maxRisk');
+            const beEl = document.getElementById('bePrice');
+            const lang = I18N[currentLang];
+
+            if (type === 'long_call') {
+                costEl.innerText = `$${(i.p1 * 100).toFixed(2)}`;
+                rewardEl.innerText = lang.unlimited;
+                riskEl.innerText = `$${(i.p1 * 100).toFixed(2)}`;
+                beEl.innerText = `$${(i.k1 + i.p1).toFixed(2)}`;
+            } else if (type === 'covered_call') {
+                costEl.innerText = `$${((i.s0 - i.p1) * 100).toFixed(2)}`;
+                rewardEl.innerText = `$${((i.k1 - i.s0 + i.p1) * 100).toFixed(2)}`;
+                riskEl.innerText = lang.riskZero;
+                beEl.innerText = `$${(i.s0 - i.p1).toFixed(2)}`;
+            } else if (type === 'cash_secured_put') {
+                costEl.innerText = `+$${(i.p1 * 100).toFixed(2)}`;
+                rewardEl.innerText = `$${(i.p1 * 100).toFixed(2)}`;
+                riskEl.innerText = `$${((i.k1 - i.p1) * 100).toFixed(2)}`;
+                beEl.innerText = `$${(i.k1 - i.p1).toFixed(2)}`;
+            } else if (type === 'bull_call_spread') {
+                const width = i.k2 - i.k1;
+                costEl.innerText = `$${(i.p1 * 100).toFixed(2)}`;
+                rewardEl.innerText = `$${((width - i.p1) * 100).toFixed(2)}`;
+                riskEl.innerText = `$${(i.p1 * 100).toFixed(2)}`;
+                beEl.innerText = `$${(i.k1 + i.p1).toFixed(2)}`;
+            } else if (type === 'iron_condor') {
+                costEl.innerText = `+$${(i.p1 * 100).toFixed(2)}`;
+                rewardEl.innerText = `$${(i.p1 * 100).toFixed(2)}`;
+                const risk = Math.max(i.k1 - i.k2, i.k4 - i.k3) - i.p1;
+                riskEl.innerText = `$${(risk * 100).toFixed(2)}`;
+                beEl.innerText = `$${(i.k1 - i.p1).toFixed(2)} / $${(i.k3 + i.p1).toFixed(2)}`;
+            } else {
+                costEl.innerText = lang.calc;
+                rewardEl.innerText = "--";
+                riskEl.innerText = "--";
+                beEl.innerText = "---";
+            }
+        }
+
+        function renderChart(labels, data, spot) {
+            if (chart) chart.destroy();
+            const lang = I18N[currentLang];
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: lang.chartY,
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: (context) => {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return null;
+                            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
+                            gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0)');
+                            gradient.addColorStop(1, 'rgba(239, 68, 68, 0.2)');
+                            return gradient;
+                        },
+                        fill: true, tension: 0.1, pointRadius: 0, borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#64748b' },
+                            title: { display: true, text: lang.chartX, color: '#64748b' }
+                        },
+                        y: {
+                            grid: { 
+                                color: (c) => c.tick.value === 0 ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.05)',
+                                lineWidth: (c) => c.tick.value === 0 ? 2 : 1
+                            },
+                            ticks: { color: '#64748b' }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Init
+        window.onload = () => {
+            setLanguage('en');
+        };
+    </script>
+</body>
+</html>
