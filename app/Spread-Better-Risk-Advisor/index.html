@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<!-- 
+  PROJECT: Spread Better Risk Advisor
+  VERSION: 2.1 (Performance Optimized)
+  
+  CONTEXT FOR FUTURE EDITS:
+  1. MATH MODEL: Uses Geometric Brownian Motion (GBM) for Monte Carlo simulations.
+     Formula: S(t+dt) = S(t) * exp((r - 0.5*sigma^2)dt + sigma*sqrt(dt)*Z)
+  2. PERFORMANCE: Simulation count is set to 500 paths to ensure smooth UI interaction 
+     during slider movements.
+  3. STRATEGIES: 
+     - 'none': Naked Short Put (Max loss assumes price = 0).
+     - 'gslo': Guaranteed Stop-Loss (Fixed exit point, premium cost deducted).
+     - 'spread': Vertical Put Spread (Hedged via Long Put leg).
+  4. UI STACK: Tailwind CSS (Utility classes), Chart.js (Visualization).
+  5. STATE: Syncing logic between 'currentPriceSlider' and 'currentPrice' is required 
+     for Sensitivity Analysis.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spread Better | Risk Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+        .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        input[type=range] { cursor: pointer; }
+    </style>
+</head>
+<body class="gradient-bg text-slate-200 min-h-screen font-sans">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-12 text-center">
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">
+                Spread Better Risk Advisor
+            </h1>
+            <p class="text-slate-400">Quantitative Risk Assessment & Live Sensitivity Analysis</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Inputs Sidebar -->
+            <div class="card p-6 rounded-2xl shadow-xl">
+                <h2 class="text-xl font-semibold mb-6 flex items-center">
+                    <span class="mr-2">⚙️</span> Parameters
+                </h2>
+                
+                <div class="space-y-4">
+                    <!-- Target Price Slider -->
+                    <div class="p-4 bg-blue-500/10 rounded-xl border border-blue-500/30">
+                        <label class="block text-sm font-bold text-blue-300 mb-2">Live Price Simulation (X)</label>
+                        <div class="flex items-center space-x-4 mb-2">
+                            <input type="range" id="currentPriceSlider" min="50" max="250" value="150" oninput="syncInputs('slider')" class="flex-1 accent-blue-500">
+                            <input type="number" id="currentPrice" value="150" oninput="syncInputs('number')" class="w-20 bg-slate-800 border border-slate-700 rounded p-1 text-center text-white text-sm">
+                        </div>
+                        <p class="text-[10px] text-slate-400">Slide to see P/L if stock reaches this price.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Entry Price (p)</label>
+                        <input type="number" id="entryPrice" value="150" oninput="calculate()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Strike Price (Short Put)</label>
+                        <input type="number" id="strikePrice" value="145" oninput="calculate()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Premium Received (p)</label>
+                        <input type="number" id="premium" value="5" oninput="calculate()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Bet Size (£ per point)</label>
+                        <input type="number" id="betSize" value="10" oninput="calculate()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white outline-none focus:border-blue-500">
+                    </div>
+                    <hr class="border-slate-700 my-4">
+                    
+                    <div class="p-3 bg-blue-900/20 rounded-lg border border-blue-500/30">
+                        <label class="block text-sm font-bold text-blue-300 mb-1">Strategy Selection</label>
+                        <select id="strategyType" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm" onchange="toggleInputs()">
+                            <option value="none">No Protection (Naked)</option>
+                            <option value="gslo">GSLO Protected</option>
+                            <option value="spread">Short Put Spread</option>
+                        </select>
+                    </div>
+
+                    <div id="gsloInput" class="hidden">
+                        <label class="block text-sm font-medium mb-1">GSLO Level (p)</label>
+                        <input type="number" id="gsloLevel" value="130" oninput="calculate()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white">
+                    </div>
+
+                    <div id="spreadInput" class="hidden">
+                        <label class="block text-sm font-medium mb-1">Long Put Strike (Lower)</label>
+                        <input type="number" id="longStrike" value="130" oninput="calculate()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white">
+                        <label class="block text-sm font-medium mt-2">Long Put Premium Paid (p)</label>
+                        <input type="number" id="longPremium" value="2" oninput="calculate()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white">
+                    </div>
+
+                    <div id="nakedNote" class="p-3 bg-red-900/20 rounded-lg border border-red-500/30">
+                        <p class="text-xs text-red-400 font-bold">⚠️ Naked Position: Unlimited downside liability.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Area -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="card p-4 rounded-xl border-l-4 border-blue-500">
+                        <p class="text-xs text-slate-400 uppercase tracking-wider">Estimated P/L at Price X</p>
+                        <p id="statLivePL" class="text-3xl font-black text-white">£0.00</p>
+                    </div>
+                    <div class="card p-4 rounded-xl border-l-4 border-emerald-500">
+                        <p class="text-xs text-slate-400 uppercase tracking-wider">Max Potential Profit</p>
+                        <p id="statMaxProfit" class="text-2xl font-bold text-emerald-400">£0</p>
+                    </div>
+                    <div class="card p-4 rounded-xl border-l-4 border-red-500">
+                        <p class="text-xs text-slate-400 uppercase tracking-wider">Max Potential Loss</p>
+                        <p id="statMaxLoss" class="text-2xl font-bold text-red-400">£0</p>
+                    </div>
+                    <div class="card p-4 rounded-xl border-l-4 border-slate-500">
+                        <p class="text-xs text-slate-400 uppercase tracking-wider">Breakeven Price</p>
+                        <p id="statBreakeven" class="text-2xl font-bold text-slate-300">0p</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="card p-6 rounded-2xl">
+                    <h3 class="text-lg font-semibold mb-4">Payoff Diagram (P/L relative to Entry)</h3>
+                    <canvas id="payoffChart" height="150"></canvas>
+                </div>
+
+                <!-- Simulation Info -->
+                <div class="card p-6 rounded-2xl border-emerald-500/20">
+                    <h3 class="text-lg font-semibold mb-2 flex items-center">
+                        <span class="mr-2">🔬</span> Scientific Insight: Probability of Ruin
+                    </h3>
+                    <p class="text-sm text-slate-400 mb-4">Monte Carlo Simulation (30 days, 30% Volatility, 500 paths) hitting Breakeven.</p>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-1 bg-slate-800 rounded-full h-4 overflow-hidden">
+                            <div id="probBar" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <span id="probText" class="text-xl font-bold text-emerald-400">0%</span>
+                    </div>
+                    <p id="riskAdvice" class="mt-4 text-xs italic text-slate-400"></p>
+                </div>
+
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-slate-500 text-xs">
+            <p>Educational Tool - Not Financial Advice. Calculations based on cash settlement at expiry.</p>
+        </footer>
+    </div>
+
+    <script>
+        let chart;
+
+        function syncInputs(source) {
+            const slider = document.getElementById('currentPriceSlider');
+            const number = document.getElementById('currentPrice');
+            if (source === 'slider') {
+                number.value = slider.value;
+            } else {
+                slider.value = number.value;
+            }
+            calculate();
+        }
+
+        function toggleInputs() {
+            const type = document.getElementById('strategyType').value;
+            document.getElementById('gsloInput').classList.toggle('hidden', type !== 'gslo');
+            document.getElementById('spreadInput').classList.toggle('hidden', type !== 'spread');
+            document.getElementById('nakedNote').classList.toggle('hidden', type !== 'none');
+            calculate();
+        }
+
+        function getPLAtPrice(p, kShort, pShort, bet, type) {
+            let profit;
+            if (type === 'gslo') {
+                const level = parseFloat(document.getElementById('gsloLevel').value) || 0;
+                const actualPrice = Math.max(p, level);
+                profit = (pShort - 0.5 - Math.max(0, kShort - actualPrice)) * bet;
+            } else if (type === 'spread') {
+                const kLong = parseFloat(document.getElementById('longStrike').value) || 0;
+                const pLong = parseFloat(document.getElementById('longPremium').value) || 0;
+                const netPrem = pShort - pLong;
+                const lossOnShort = Math.max(0, kShort - p);
+                const gainOnLong = Math.max(0, kLong - p);
+                profit = (netPrem - lossOnShort + gainOnLong) * bet;
+            } else {
+                profit = (pShort - Math.max(0, kShort - p)) * bet;
+            }
+            return profit;
+        }
+
+        function calculate() {
+            const xPrice = parseFloat(document.getElementById('currentPrice').value) || 0;
+            const entryPrice = parseFloat(document.getElementById('entryPrice').value) || 0;
+            const kShort = parseFloat(document.getElementById('strikePrice').value) || 0;
+            const pShort = parseFloat(document.getElementById('premium').value) || 0;
+            const bet = parseFloat(document.getElementById('betSize').value) || 0;
+            const type = document.getElementById('strategyType').value;
+
+            // Update Slider Bounds
+            const slider = document.getElementById('currentPriceSlider');
+            slider.min = Math.floor(entryPrice * 0.5);
+            slider.max = Math.ceil(entryPrice * 1.5);
+
+            // Calculate Live P/L
+            const livePL = getPLAtPrice(xPrice, kShort, pShort, bet, type);
+            const plElement = document.getElementById('statLivePL');
+            plElement.innerText = `£${livePL.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            plElement.className = livePL >= 0 ? "text-3xl font-black text-emerald-400" : "text-3xl font-black text-red-400";
+
+            // Stats
+            let maxProfit, maxLoss, breakeven;
+            if (type === 'gslo') {
+                const gsloLevel = parseFloat(document.getElementById('gsloLevel').value) || 0;
+                const gsloCost = 0.5; 
+                maxProfit = (pShort - gsloCost) * bet;
+                maxLoss = (kShort - gsloLevel) * bet + (gsloCost * bet);
+                breakeven = kShort - (pShort - gsloCost);
+            } else if (type === 'spread') {
+                const kLong = parseFloat(document.getElementById('longStrike').value) || 0;
+                const pLong = parseFloat(document.getElementById('longPremium').value) || 0;
+                const netPremium = pShort - pLong;
+                maxProfit = netPremium * bet;
+                maxLoss = (kShort - kLong - netPremium) * bet;
+                breakeven = kShort - netPremium;
+            } else {
+                maxProfit = pShort * bet;
+                maxLoss = (kShort - pShort) * bet;
+                breakeven = kShort - pShort;
+            }
+
+            document.getElementById('statMaxProfit').innerText = `£${maxProfit.toLocaleString()}`;
+            document.getElementById('statMaxLoss').innerText = `£${maxLoss.toLocaleString()}`;
+            document.getElementById('statBreakeven').innerText = `${breakeven.toFixed(2)}p`;
+
+            updateChart(entryPrice, kShort, xPrice, type);
+            runSimulation(entryPrice, breakeven);
+        }
+
+        function updateChart(entryPrice, kShort, xPrice, type) {
+            const ctx = document.getElementById('payoffChart').getContext('2d');
+            const prices = [];
+            const profits = [];
+            const pShort = parseFloat(document.getElementById('premium').value) || 0;
+            const bet = parseFloat(document.getElementById('betSize').value) || 0;
+
+            const minP = entryPrice * 0.6;
+            const maxP = entryPrice * 1.4;
+
+            for (let p = minP; p <= maxP; p += (maxP - minP)/60) {
+                prices.push(p.toFixed(1));
+                profits.push(getPLAtPrice(p, kShort, pShort, bet, type));
+            }
+
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: prices,
+                    datasets: [
+                        {
+                            label: 'P/L at Expiry',
+                            data: profits,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            fill: true,
+                            tension: 0.2,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function runSimulation(s0, breakeven) {
+            const vol = 0.30;
+            const days = 30;
+            const dt = 1/365;
+            let ruins = 0;
+            const simulations = 500; 
+
+            for (let i = 0; i < simulations; i++) {
+                let current = s0;
+                let hitBreakeven = false;
+                for (let d = 0; d < days; d++) {
+                    const z = (Math.random() + Math.random() + Math.random() + Math.random() + Math.random() + Math.random() - 3) / 1.5; 
+                    current = current * Math.exp((-0.5 * vol * vol) * dt + vol * Math.sqrt(dt) * z);
+                    if (current <= breakeven) {
+                        hitBreakeven = true;
+                        break;
+                    }
+                }
+                if (hitBreakeven) ruins++;
+            }
+
+            const prob = (ruins / simulations) * 100;
+            const bar = document.getElementById('probBar');
+            bar.style.width = `${prob}%`;
+            document.getElementById('probText').innerText = `${prob.toFixed(1)}%`;
+            bar.className = prob > 20 ? "bg-red-500 h-full transition-all" : "bg-emerald-500 h-full transition-all";
+        }
+
+        window.onload = calculate;
+    </script>
+</body>
+</html>
