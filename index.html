@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cenz Tools – Index</title>
+<title>Invest Tools – Index</title>
 <link rel="icon" href="data:,">
 <style>
   :root{--max:1080px}
@@ -31,9 +31,9 @@
 <body>
 <header>
   <div class="wrap">
-    <h1>🔧 Cenz Tools</h1>
+    <h1>🔧 Invest Tools</h1>
     <div class="controls">
-      <input id="q" type="search" placeholder="Search tools…" />
+      <input id="q" type="search" placeholder="Search apps…" />
       <button id="selectAll" type="button">Select all</button>
       <button id="clearSel" type="button">Clear</button>
       <button id="openSel" type="button">Open selected</button>
@@ -46,7 +46,7 @@
   <div class="wrap">
     <div id="status" class="muted" style="margin:8px 0 14px;">Loading…</div>
     <div id="list" class="grid" aria-live="polite"></div>
-    <div id="empty" class="empty" style="display:none">No <code>tools/*.html</code> files found.</div>
+    <div id="empty" class="empty" style="display:none">No apps found in <code>app/</code>.</div>
   </div>
 </main>
 
@@ -54,12 +54,12 @@
 (function(){
   // Hard-coded to your repo
   const owner = "cenzwong";
-  const repo  = "tools";
-  const api   = `https://api.github.com/repos/${owner}/${repo}/contents/tools`;
+  const repo  = "invest-tools";
+  const api   = `https://api.github.com/repos/${owner}/${repo}/contents/app`;
 
   // Project Pages base path: /<repo>/
   const basePath = `/${repo}/`;
-  const webToolsBase = `${basePath}tools/`;
+  const webToolsBase = `${basePath}app/`;
 
   const $list = document.getElementById('list');
   const $status = document.getElementById('status');
@@ -92,10 +92,10 @@
           <input class="checkbox" type="checkbox" id="${id}" ${state.selected.has(it.path)?'checked':''}/>
           <div style="flex:1">
             <h3>${it.title} <span class="badge">${it.name}</span></h3>
-            <p class="muted">Single-file tool</p>
+            <p class="muted">App</p>
             <div class="toolsbar">
               <a class="linkbtn" href="${it.href}" target="_blank" rel="noopener">Open</a>
-              <a class="linkbtn" href="${it.raw}" target="_blank" rel="noopener">Raw</a>
+              <a class="linkbtn" href="${it.raw}" target="_blank" rel="noopener">Source</a>
             </div>
           </div>`;
         card.querySelector('input').addEventListener('change',e=>{
@@ -104,22 +104,23 @@
         $list.appendChild(card);
       }
     }
-    $status.textContent = `${state.filtered.length} tools · ${state.selected.size} selected`;
+    $status.textContent = `${state.filtered.length} apps · ${state.selected.size} selected`;
   }
 
   function inflate(files){
-    const htmls = files.filter(f => f.type==='file' && /\.html?$/i.test(f.name) && !/^index\.html?$/i.test(f.name));
-    state.items = htmls.map(f=>{
+    // Filter for directories (apps)
+    const apps = files.filter(f => f.type==='dir');
+    state.items = apps.map(f=>{
       const title = toTitle(f.name);
-      const href = webToolsBase + encodeURIComponent(f.name);
-      const raw = f.download_url || (f.html_url ? f.html_url.replace('github.com','raw.githubusercontent.com').replace('/blob/','/') : '');
+      const href = webToolsBase + encodeURIComponent(f.name) + '/';
+      const raw = f.html_url; // Link to the GitHub folder
       return { name:f.name, title, path:f.path, href, raw };
     }).sort((a,b)=> a.title.localeCompare(b.title));
     render();
   }
 
   async function loadFromAPI(){
-    $status.textContent = "Loading tools/ from GitHub…";
+    $status.textContent = "Loading apps/ from GitHub…";
     const res = await fetch(api, { headers: { 'Accept':'application/vnd.github+json' }});
     if(!res.ok) throw new Error(`GitHub API ${res.status}`);
     const data = await res.json();
@@ -129,7 +130,7 @@
   document.getElementById('selectAll').onclick = ()=>{ state.filtered.forEach(it=>state.selected.add(it.path)); render(); };
   document.getElementById('clearSel').onclick = ()=>{ state.selected.clear(); render(); };
   document.getElementById('openSel').onclick = ()=>{
-    if(state.selected.size===0) return alert("No tools selected");
+    if(state.selected.size===0) return alert("No apps selected");
     for(const p of state.selected){
       const it = state.items.find(x=>x.path===p);
       if(it) window.open(it.href,'_blank','noopener');
@@ -138,7 +139,7 @@
   $q.addEventListener('input', render);
 
   loadFromAPI().catch(()=>{
-    $status.textContent = "Failed to load. Check the repo and the tools/ folder.";
+    $status.textContent = "Failed to load. Check the repo and the app/ folder.";
     $empty.style.display="block";
   });
 })();
