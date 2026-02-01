@@ -8,7 +8,7 @@
     <!-- KaTeX for LaTeX rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="try { renderMathInElement(document.body); } catch(e) { console.error(e); }"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+TC:wght@300;400;700&display=swap');
         
@@ -22,7 +22,6 @@
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.2s ease;
         }
 
         .input-dark {
@@ -39,39 +38,35 @@
 
         .tab-active {
             border-bottom: 2px solid #38bdf8;
-            color: #38bdf8;
+            color: #38bdf8 !important;
         }
 
         .info-box {
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.95);
             border-left: 4px solid #38bdf8;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
 
-        .tooltip-container {
-            position: relative;
-            display: inline-block;
-        }
-
         .tooltip-text {
             visibility: hidden;
-            width: 200px;
+            width: 220px;
             background-color: #1e293b;
             color: #fff;
             text-align: left;
-            border-radius: 6px;
-            padding: 8px;
+            border-radius: 8px;
+            padding: 10px;
             position: absolute;
-            z-index: 50;
+            z-index: 100;
             bottom: 125%;
             left: 50%;
-            margin-left: -100px;
+            margin-left: -110px;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.2s;
             font-size: 0.75rem;
-            line-height: 1.2;
+            line-height: 1.4;
             border: 1px solid #38bdf8;
             pointer-events: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .group:hover .tooltip-text {
@@ -80,7 +75,7 @@
         }
 
         .katex { font-size: 1.05em; }
-
+        
         /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
@@ -99,7 +94,7 @@
         <h1 data-i18n="header-title" class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">
             Range Trading Hub
         </h1>
-        <p data-i18n="header-subtitle" class="mt-2 text-slate-400 text-sm md:text-base">Advanced Computational Suite for Sideways Markets</p>
+        <p data-i18n="header-subtitle" class="mt-2 text-slate-400 text-sm md:text-base">Professional Computational Textbook</p>
     </header>
 
     <main class="max-w-6xl mx-auto px-4 mt-8">
@@ -133,15 +128,15 @@
                         <h4 class="font-bold text-sky-400 mb-2" data-i18n="textbook-pivot-h">Textbook: What are Pivot Points?</h4>
                         <p class="text-slate-300 mb-4" data-i18n="textbook-pivot-p">Pivots are mathematical "gravity centers" based on the previous session's range.</p>
                         <div class="bg-slate-900 rounded-lg p-4 mb-4 overflow-x-auto space-y-4">
-                            <div id="latex-pivot-main" class="text-center">$$PP = \frac{High + Low + Close}{3}$$</div>
-                            <div id="latex-pivot-sub" class="grid grid-cols-2 gap-2 text-xs">
+                            <div class="text-center">$$PP = \frac{High + Low + Close}{3}$$</div>
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                                 <div>$$R1 = (2 \times PP) - Low$$</div>
                                 <div>$$S1 = (2 \times PP) - High$$</div>
-                                <div>$$R2 = PP + (High - Low)$$</div>
-                                <div>$$S2 = PP - (High - Low)$$</div>
+                                <div>$$R2 = PP + (H - L)$$</div>
+                                <div>$$S2 = PP - (H - L)$$</div>
                             </div>
                         </div>
-                        <p class="text-xs text-slate-400" data-i18n="textbook-pivot-logic">Logic: $PP$ is the fair value. $R1$ and $S1$ represent the first standard deviation of price movement, while $R2/S2$ are the extreme edges.</p>
+                        <p class="text-xs text-slate-400" data-i18n="textbook-pivot-logic">Logic: $PP$ is the fair value. $R1/S1$ identify immediate boundaries, $R2/S2$ are extreme deviation points.</p>
                     </div>
                     
                     <div class="space-y-4 flex-grow">
@@ -195,11 +190,8 @@
                         <p class="text-slate-300 mb-4" data-i18n="textbook-move-p">Calculates a "1 Standard Deviation" move. Price stays inside this range 68% of the time.</p>
                         <div class="bg-slate-900 rounded-lg p-4 mb-4 overflow-x-auto space-y-4">
                             <div class="text-center">$$Move = Price \times IV \times \sqrt{\frac{T}{365}}$$</div>
-                            <div class="text-center text-xs text-purple-300">
-                                $$Range = [Price - Move, \ Price + Move]$$
-                            </div>
                         </div>
-                        <p class="text-xs text-slate-400" data-i18n="textbook-move-logic">Note: The Square Root of Time rule accounts for the fact that volatility is non-linear.</p>
+                        <p class="text-xs text-slate-400" data-i18n="textbook-move-logic">Logic: Volatility scales with the square root of time. $IV$ is the annual fear index.</p>
                     </div>
                     
                     <div class="space-y-4 flex-grow">
@@ -216,7 +208,7 @@
                                 <label class="text-xs text-slate-400 flex items-center mb-1">
                                     <span data-i18n="label-iv">IV %</span>
                                     <svg class="w-3 h-3 ml-1 text-slate-500 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"></path></svg>
-                                    <span class="tooltip-text" data-i18n="tip-iv">Implied Volatility (expressed as a annual % percentage).</span>
+                                    <span class="tooltip-text" data-i18n="tip-iv">Implied Volatility (annual %).</span>
                                 </label>
                                 <input type="number" id="ivVal" class="w-full p-2 rounded input-dark">
                             </div>
@@ -225,7 +217,7 @@
                             <label class="text-xs text-slate-400 flex items-center mb-1">
                                 <span data-i18n="label-days">Days</span>
                                 <svg class="w-3 h-3 ml-1 text-slate-500 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"></path></svg>
-                                <span class="tooltip-text" data-i18n="tip-days">The number of days for the predicted range.</span>
+                                <span class="tooltip-text" data-i18n="tip-days">Number of days to forecast.</span>
                             </label>
                             <input type="number" id="daysVal" value="1" class="w-full p-2 rounded input-dark">
                         </div>
@@ -241,7 +233,7 @@
                             <div class="p-2 bg-emerald-500/20 rounded-lg">
                                 <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2"></path></svg>
                             </div>
-                            <h2 data-i18n="calc-risk-title" class="text-xl font-bold">Position Size & Risk</h2>
+                            <h2 data-i18n="calc-risk-title" class="text-xl font-bold">Risk Management & Position Sizer</h2>
                         </div>
                         <button onclick="toggleInfo('risk')" class="text-slate-500 hover:text-emerald-400">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"></path></svg>
@@ -249,12 +241,11 @@
                     </div>
 
                     <div id="info-risk" class="hidden info-box p-5 mb-6 text-sm border-emerald-500/50">
-                        <h4 class="font-bold text-emerald-400 mb-2" data-i18n="textbook-risk-h">Textbook: Risk Management</h4>
-                        <p class="text-slate-300 mb-4" data-i18n="textbook-risk-p">Size strictly ensures a "fakeout" doesn't destroy your capital.</p>
+                        <h4 class="font-bold text-emerald-400 mb-2" data-i18n="textbook-risk-h">Textbook: Why Size Matters</h4>
+                        <p class="text-slate-300 mb-4" data-i18n="textbook-risk-p">In a range, stop-losses are tight. Size ensures a "fakeout" doesn't destroy your capital.</p>
                         <div class="bg-slate-900 rounded-lg p-4 mb-2 overflow-x-auto text-center">
                             $$Units = \frac{Account \times Risk\%}{|Entry - Stop|}$$
                         </div>
-                        <p class="text-xs text-slate-400" data-i18n="textbook-risk-logic">Logic: The denominator is your "Risk per Unit." Dividing your total risk dollar amount by risk per unit gives you the exact volume to buy.</p>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -262,7 +253,7 @@
                             <label class="text-xs text-slate-400 flex items-center mb-1">
                                 <span data-i18n="label-balance">Account ($)</span>
                                 <svg class="w-3 h-3 ml-1 text-slate-500 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"></path></svg>
-                                <span class="tooltip-text" data-i18n="tip-balance">Total capital available for trading.</span>
+                                <span class="tooltip-text" data-i18n="tip-balance">Total account equity.</span>
                             </label>
                             <input type="number" id="balance" class="w-full p-2 rounded input-dark">
                         </div>
@@ -270,7 +261,7 @@
                             <label class="text-xs text-slate-400 flex items-center mb-1">
                                 <span data-i18n="label-risk-p">Risk %</span>
                                 <svg class="w-3 h-3 ml-1 text-slate-500 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"></path></svg>
-                                <span class="tooltip-text" data-i18n="tip-risk">Percent of account you are willing to lose on this trade.</span>
+                                <span class="tooltip-text" data-i18n="tip-risk">Account % to lose if stop hit.</span>
                             </label>
                             <input type="number" id="riskPerc" value="1" class="w-full p-2 rounded input-dark">
                         </div>
@@ -278,7 +269,7 @@
                             <label class="text-xs text-slate-400 flex items-center mb-1">
                                 <span data-i18n="label-entry">Entry</span>
                                 <svg class="w-3 h-3 ml-1 text-slate-500 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"></path></svg>
-                                <span class="tooltip-text" data-i18n="tip-entry">Your planned buy or sell price.</span>
+                                <span class="tooltip-text" data-i18n="tip-entry">Your target buy/sell price.</span>
                             </label>
                             <input type="number" id="entry" class="w-full p-2 rounded input-dark">
                         </div>
@@ -286,7 +277,7 @@
                             <label class="text-xs text-slate-400 flex items-center mb-1">
                                 <span data-i18n="label-stop">Stop</span>
                                 <svg class="w-3 h-3 ml-1 text-slate-500 cursor-help" fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"></path></svg>
-                                <span class="tooltip-text" data-i18n="tip-stop">The price at which you will exit the trade if wrong.</span>
+                                <span class="tooltip-text" data-i18n="tip-stop">Price where you admit wrong.</span>
                             </label>
                             <input type="number" id="stop" class="w-full p-2 rounded input-dark">
                         </div>
@@ -299,29 +290,63 @@
         </section>
 
         <!-- KNOWLEDGE SECTION -->
-        <section id="sect-knowledge" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Cards remain same but content localized -->
-                <div class="glass-card p-6 rounded-2xl flex flex-col">
+        <section id="sect-knowledge" class="hidden animate-in fade-in duration-300">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards restored with full usage details -->
+                <div class="glass-card p-6 rounded-2xl">
                     <h3 class="text-sky-400 font-bold text-lg mb-2">ADX</h3>
-                    <p data-i18n="know-adx-desc" class="text-slate-400 text-sm mb-4">The ultimate trend filter.</p>
+                    <p data-i18n="know-adx-desc" class="text-slate-400 text-sm mb-4">Ultimate trend filter. Values below 25 indicate a range.</p>
                 </div>
-                <div class="glass-card p-6 rounded-2xl flex flex-col">
+                <div class="glass-card p-6 rounded-2xl">
                     <h3 class="text-emerald-400 font-bold text-lg mb-2">RSI</h3>
-                    <p data-i18n="know-rsi-desc" class="text-slate-400 text-sm mb-4">Momentum oscillator.</p>
+                    <p data-i18n="know-rsi-desc" class="text-slate-400 text-sm mb-4">Sell at > 70; Buy at < 30. Watch for divergence.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <h3 class="text-purple-400 font-bold text-lg mb-2">BB</h3>
+                    <p data-i18n="know-bb-desc" class="text-slate-400 text-sm mb-4">Buy at lower band; Sell at upper band in horizontal markets.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <h3 class="text-amber-400 font-bold text-lg mb-2">CCI</h3>
+                    <p data-i18n="know-cci-desc" class="text-slate-400 text-sm mb-4">Values above +100 signal ceiling; below -100 signal floor.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <h3 class="text-pink-400 font-bold text-lg mb-2">Stoch</h3>
+                    <p data-i18n="know-stoch-desc" class="text-slate-400 text-sm mb-4">K crossing D below 20 confirms entry timing.</p>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <h3 class="text-orange-400 font-bold text-lg mb-2">ATR</h3>
+                    <p data-i18n="know-atr-desc" class="text-slate-400 text-sm mb-4">Set stops at 2x ATR outside range boundaries.</p>
                 </div>
             </div>
         </section>
 
         <!-- STRATEGIES SECTION -->
         <section id="sect-strategies" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass-card p-6 rounded-2xl flex flex-col">
-                    <h3 class="text-purple-400 font-bold text-lg mb-2">Iron Condor</h3>
-                    <p data-i18n="strat-ic-desc" class="text-slate-400 text-sm mb-4">Market neutral strategy profiting from low volatility.</p>
+            <div class="glass-card rounded-2xl p-8">
+                <h2 data-i18n="strat-matrix-title" class="text-2xl font-bold mb-6 text-sky-400 border-b border-slate-700 pb-2">The Confluence Matrix</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/20">
+                        <h3 data-i18n="strat-buy-setup" class="text-emerald-400 font-bold mb-3">🟢 Buy Setup (Range Floor)</h3>
+                        <ul class="space-y-3 text-sm text-slate-300">
+                            <li><strong>1. Level:</strong> Price touches Support or S2 Pivot.</li>
+                            <li><strong>2. Trend:</strong> ADX is < 25.</li>
+                            <li><strong>3. Exhaustion:</strong> RSI is < 30.</li>
+                            <li><strong>4. Timing:</strong> Stochastic cross up.</li>
+                        </ul>
+                    </div>
+                    <div class="p-4 bg-red-500/5 rounded-xl border border-red-500/20">
+                        <h3 data-i18n="strat-sell-setup" class="text-red-400 font-bold mb-3">🔴 Sell Setup (Range Ceiling)</h3>
+                        <ul class="space-y-3 text-sm text-slate-300">
+                            <li><strong>1. Level:</strong> Price touches Resistance or R2 Pivot.</li>
+                            <li><strong>2. Trend:</strong> ADX is < 25.</li>
+                            <li><strong>3. Exhaustion:</strong> RSI is > 70.</li>
+                            <li><strong>4. Timing:</strong> Stochastic cross down.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </section>
+
     </main>
 
     <script>
@@ -337,27 +362,30 @@
                 "btn-calculate": "Generate Levels", "btn-prob": "Generate Range", "btn-units": "Calculate Position",
                 "textbook-pivot-h": "Textbook: What are Pivot Points?",
                 "textbook-pivot-p": "Pivots are mathematical 'gravity centers' based on the previous session's range.",
-                "textbook-pivot-logic": "Logic: $PP$ is the fair value. $R1/S1$ identify immediate boundaries, $R2/S2$ are extreme deviation points.",
+                "textbook-pivot-logic": "Logic: $PP$ is fair value. $R1/S1$ are boundaries, $R2/S2$ are extreme deviation points.",
                 "textbook-move-h": "Textbook: Probability & Risk",
-                "textbook-move-p": "Calculates a '1 Standard Deviation' move. Price stays inside 68% of the time.",
-                "textbook-move-logic": "Formula Breakdown: $IV$ is annual volatility. We divide $T$ by 365 and take the square root to find the expected move for your specific duration.",
+                "textbook-move-p": "Calculates a '1 SD' move. Price stays inside 68% of the time.",
+                "textbook-move-logic": "Logic: Volatility scales with $\\sqrt{T}$. $IV$ is the annual fear index.",
                 "textbook-risk-h": "Textbook: Risk Management",
                 "textbook-risk-p": "Size strictly ensures a 'fakeout' doesn't destroy your capital.",
-                "textbook-risk-logic": "Math: Dividing Total Risk Dollars by (Entry - Stop) creates a size where hitting your stop loss results in exactly the loss percentage planned.",
-                "know-adx-desc": "The ultimate trend filter.",
-                "know-rsi-desc": "Momentum oscillator.",
-                "strat-ic-desc": "Market neutral strategy profiting from low volatility.",
-                "tip-high": "The highest price traded in the previous session.",
-                "tip-low": "The lowest price traded in the previous session.",
-                "tip-close": "The price when the market closed last session.",
-                "tip-price": "The current market price of the security.",
-                "tip-iv": "Implied Volatility: The market's expectation of a 1-year price swing.",
-                "tip-days": "How many days into the future you are projecting.",
-                "tip-balance": "Your total trading account equity.",
-                "tip-risk": "The % of total equity you are prepared to lose if stop is hit.",
-                "tip-entry": "The price you intend to buy or sell at.",
-                "tip-stop": "The price where the trade is proven 'wrong' and must be closed.",
-                "res-units": "Units", "res-risk": "Risk Amount", "res-upper": "Upper Band", "res-lower": "Lower Band"
+                "tip-high": "The highest price traded last session.",
+                "tip-low": "The lowest price traded last session.",
+                "tip-close": "The price at market close last session.",
+                "tip-price": "The current market price.",
+                "tip-iv": "Implied Volatility (Annual % expectation).",
+                "tip-days": "Number of days for forecast.",
+                "tip-balance": "Your total trading capital.",
+                "tip-risk": "Account % to lose if stop hit.",
+                "tip-entry": "Your target entry price.",
+                "tip-stop": "Exit price if wrong.",
+                "know-adx-desc": "Filter trend. Below 25 = Sideways.",
+                "know-rsi-desc": "Overbought/Oversold momentum index.",
+                "know-bb-desc": "Buy low/Sell high in horizontal channels.",
+                "know-cci-desc": "Cyclical turns for range extremes.",
+                "know-stoch-desc": "Best for entry timing via crosses.",
+                "know-atr-desc": "Use 2x ATR for noise-free stops.",
+                "res-units": "Units", "res-risk": "Risk Amount", "res-upper": "Upper Band", "res-lower": "Lower Band",
+                "strat-matrix-title": "Confluence Checklist", "strat-buy-setup": "Buy Setup (Floor)", "strat-sell-setup": "Sell Setup (Ceiling)"
             },
             zh: {
                 "header-title": "區間交易中心",
@@ -373,24 +401,27 @@
                 "textbook-pivot-logic": "邏輯：$PP$ 為公允價值。$R1/S1$ 識別即時邊界，$R2/S2$ 為極端偏離點。",
                 "textbook-move-h": "教科書：概率與風險",
                 "textbook-move-p": "計算「1 個標準差」的移動。統計上，價格有 68% 的時間會留在該範圍內。",
-                "textbook-move-logic": "公式解析：$IV$ 為年度波動率。我們將 $T$ 除以 365 並取平方根，以得出特定時間內的預期波動。",
+                "textbook-move-logic": "邏輯：波動率隨 $\\sqrt{T}$ 縮放。$IV$ 是市場年度恐慌指數。",
                 "textbook-risk-h": "教科書：風險管理",
                 "textbook-risk-p": "嚴格控制倉位，確保假突破不會毀掉你的資本。",
-                "textbook-risk-logic": "數學邏輯：將總風險金額除以（入場價 - 止損價），即可得出一個觸及止損時損失剛好等於預設比例的倉位。",
-                "know-adx-desc": "終極趨勢過濾器。",
-                "know-rsi-desc": "動量震盪指標。",
-                "strat-ic-desc": "市場中性策略，從低波動中獲利。",
-                "tip-high": "前一交易日的最高成交價格。",
-                "tip-low": "前一交易日的最低成交價格。",
-                "tip-close": "前一交易日市場收市時的價格。",
-                "tip-price": "證券的當前市場價格。",
-                "tip-iv": "隱含波動率：市場對未來一年價格波動幅度的預期。",
-                "tip-days": "你希望預測未來多少天的價格波動範圍。",
-                "tip-balance": "你的交易賬戶總資產。",
-                "tip-risk": "如果觸及止損，你準備損失總資產的百分比。",
-                "tip-entry": "你打算買入或賣出的預定價格。",
-                "tip-stop": "當交易被證明「錯誤」且必須平倉時的價格。",
-                "res-units": "成交單位數量", "res-risk": "風險金額", "res-upper": "上限值", "res-lower": "下限值"
+                "tip-high": "上一交易日的最高價格。",
+                "tip-low": "上一交易日的最低價格。",
+                "tip-close": "上一交易日的收盤價格。",
+                "tip-price": "當前市場價格。",
+                "tip-iv": "隱含波動率 (年度波動預期 %)。",
+                "tip-days": "預測未來的天數。",
+                "tip-balance": "你的總交易賬戶資金。",
+                "tip-risk": "觸及止損時，你準備損失總資產的百分比。",
+                "tip-entry": "你的預定買入或賣出價格。",
+                "tip-stop": "如果行情判斷錯誤，必須平倉的價格。",
+                "know-adx-desc": "過濾趨勢。低於 25 = 橫盤。",
+                "know-rsi-desc": "衡量超買/超賣的動能指標。",
+                "know-bb-desc": "在水平通道中低買高賣。",
+                "know-cci-desc": "識別區間極端的週期性轉向。",
+                "know-stoch-desc": "最適合透過交叉判斷入場時機。",
+                "know-atr-desc": "使用 2x ATR 設置無噪聲止損。",
+                "res-units": "成交單位數量", "res-risk": "風險金額", "res-upper": "上限值", "res-lower": "下限值",
+                "strat-matrix-title": "多重匯聚清單", "strat-buy-setup": "買入設置 (地板)", "strat-sell-setup": "賣出設置 (天花板)"
             }
         };
 
@@ -400,25 +431,32 @@
             currentLang = lang;
             document.getElementById('btn-en').className = lang === 'en' ? 'px-3 py-1 text-xs font-bold rounded transition-all bg-sky-500 text-white' : 'px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white';
             document.getElementById('btn-zh').className = lang === 'zh' ? 'px-3 py-1 text-xs font-bold rounded transition-all bg-sky-500 text-white' : 'px-3 py-1 text-xs font-bold rounded transition-all text-slate-400 hover:text-white';
+            
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if (translations[lang][key]) el.innerText = translations[lang][key];
             });
-            renderMathInElement(document.body);
+            try { renderMathInElement(document.body); } catch(e) {}
         }
 
         function switchTab(tabId) {
-            ['calculators', 'knowledge', 'strategies'].forEach(t => {
-                document.getElementById('tab-' + t).classList.replace('tab-active', 'text-slate-500');
-                document.getElementById('sect-' + t).classList.add('hidden');
+            const tabs = ['calculators', 'knowledge', 'strategies'];
+            tabs.forEach(t => {
+                const tabEl = document.getElementById('tab-' + t);
+                const sectEl = document.getElementById('sect-' + t);
+                tabEl.classList.remove('tab-active');
+                tabEl.classList.add('text-slate-500');
+                sectEl.classList.add('hidden');
             });
-            document.getElementById('tab-' + tabId).classList.replace('text-slate-500', 'tab-active');
+            document.getElementById('tab-' + tabId).classList.add('tab-active');
+            document.getElementById('tab-' + tabId).classList.remove('text-slate-500');
             document.getElementById('sect-' + tabId).classList.remove('hidden');
         }
 
         function toggleInfo(id) {
-            document.getElementById('info-' + id).classList.toggle('hidden');
-            renderMathInElement(document.body);
+            const el = document.getElementById('info-' + id);
+            el.classList.toggle('hidden');
+            try { renderMathInElement(el); } catch(e) {}
         }
 
         function calculatePivots() {
@@ -475,9 +513,6 @@
                 <div class="text-2xl font-bold text-emerald-400">${units.toFixed(2)} ${translations[currentLang]['res-units']}</div>
             `;
         }
-
-        window.onload = () => renderMathInElement(document.body);
     </script>
 </body>
 </html>
-
